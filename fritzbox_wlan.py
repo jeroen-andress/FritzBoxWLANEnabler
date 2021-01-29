@@ -1,5 +1,7 @@
-#!/srv/homeassistant/bin/python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+#usage: ./fritzbox_wlan.py [on|off]
 
 import hashlib
 import requests
