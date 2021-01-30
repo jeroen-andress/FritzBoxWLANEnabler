@@ -1,17 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#usage: ./fritzbox_wlan.py [on|off]
-
 import hashlib
 import requests
 import xml.etree.ElementTree as ET
 import json
 import sys
 import time
+import getpass
+
+# to edit:
+hostname = 'http://fritz.box'
+password = getpass.getpass()
+SSID = '' 
 
 def RequestLogin(response=None):
-    url = 'http://fritz.box/login_sid.lua{}'.format('' if response is None else '?response={}'.format(response))
+    url = '{}/login_sid.lua{}'.format(hostname, '' if response is None else '?response={}'.format(response))
 
     request = requests.request('GET', url)
     root = ET.fromstring(request.content)
@@ -20,7 +24,6 @@ def RequestLogin(response=None):
     blocktime = root.findall('BlockTime')[0].text
 
     return SID, challenge, blocktime
-
 
 def GetSessionID(password, response=None):
     SID, challenge, blocktime = RequestLogin()
@@ -32,26 +35,19 @@ def GetSessionID(password, response=None):
 	
     return SID
 
-
 def main(argv):
-    password = ''
-    SSID = '' 
-
     SID = GetSessionID(password)	
     
-    url = "http://fritz.box/data.lua"
+    url = '{}/data.lua'.format(hostname)
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    payload = {}
+    payload = {'xhr': '1', 'sid': SID, 'lang': 'de', 'no_sidrenew': '', 'apply': '', 'oldpage': '/wlan/wlan_settings.lua'}
 
     if argv[1] == 'on':
-        payload = {'xhr': '1', 'sid': SID, 'lang': 'de', 'no_sidrenew': '', 'apply': '', 'oldpage': '/wlan/wlan_settings.lua', 'active': 'on', 'SSID': SSID, 'hidden_ssid': 'on'}
-    else:
-        payload = {'xhr': '1', 'sid': SID, 'lang': 'de', 'no_sidrenew': '', 'apply': '', 'oldpage': '/wlan/wlan_settings.lua'}
+        payload.update({'active': 'on', 'SSID': SSID, 'hidden_ssid': 'on'})
 
     response = requests.request("POST", url, headers=headers, data=payload)
-
     
-    requests.request('GET', 'http://fritz.box/login_sid.lua?logout=1&sid={}'.format(SID))
+    requests.request('GET', '{}/login_sid.lua?logout=1&sid={}'.format(hostname, SID))
 
 if __name__ == "__main__":
     main(sys.argv)
